@@ -304,13 +304,14 @@ td:last-child{border-right:none;}
       <th onclick="sortBy(0)">Система<span id="si0"> ↕</span></th>
       <th onclick="sortBy(1)">Город<span id="si1"> ↕</span></th>
       <th onclick="sortBy(2)">Подразделение<span id="si2"> ↕</span></th>
-      <th onclick="sortBy(3)">Название задачи<span id="si3"> ↕</span></th>
-      <th onclick="sortBy(4)">Описание<span id="si4"> ↕</span></th>
-      <th onclick="sortBy(5)">Месяц<span id="si5"> ↕</span></th>
-      <th onclick="sortBy(6)">Статус<span id="si7"> ↕</span></th>
-      <th onclick="sortBy(8)">Дата закрытия<span id="si8"> ↕</span></th>
+      <th onclick="sortBy(4)">Название задачи<span id="si4"> ↕</span></th>
+      <th onclick="sortBy(5)">Описание<span id="si5"> ↕</span></th>
+      <th onclick="sortBy(6)">Месяц<span id="si6"> ↕</span></th>
+      <th onclick="sortBy(7)">Этап<span id="si7"> ↕</span></th>
+      <th onclick="sortBy(8)">Статус<span id="si8"> ↕</span></th>
+      <th onclick="sortBy(9)">Дата закрытия<span id="si9"> ↕</span></th>
       <th>Ссылка</th>
-      <th onclick="sortBy(10)">Ответственный<span id="si10"> ↕</span></th>
+      <th onclick="sortBy(13)">Ответственный<span id="si13"> ↕</span></th>
       <th>Заметки</th>
     </tr></thead>
     <tbody id="tbody"></tbody>
@@ -322,8 +323,8 @@ td:last-child{border-right:none;}
 <script>
 // ── COLUMN MAP ──────────────────────────────────────────────
 // Column indices — auto-detected from header row
-// Дефолты: Система|Город|Подразделение|Название задачи|Описание|Месяц|Статус|Дата закрытия|Оценка|Трудозатраты|Ссылка|Ответственный|Заметки
-let C = { sys:0, city:1, dept:2, proj:-1, name:3, desc:4, month:5, stage:-1, status:6, date:7, est:8, labor:9, link:10, person:11, notes:12 };
+// Структура: Система(0)|Город(1)|Подразделение(2)|Проект(3)|Название задачи(4)|Описание(5)|Месяц(6)|Этап(7)|Статус(8)|Дата закрытия(9)|Оценка(10)|Трудозатраты(11)|Ссылка(12)|Ответственный(13)|Заметки(14)
+let C = { sys:0, city:1, dept:2, proj:3, name:4, desc:5, month:6, stage:7, status:8, date:9, est:10, labor:11, link:12, person:13, notes:14 };
 
 const COL_KEYWORDS = {
   sys:    ['система'],
@@ -351,7 +352,7 @@ function detectColumns(headerRow) {
       if (kws.some(k => low.includes(k)) && !(key in map)) map[key] = idx;
     }
   });
-  const defaults = { sys:0, city:1, dept:2, proj:-1, name:3, desc:4, month:5, stage:-1, status:6, date:7, est:8, labor:9, link:10, person:11, notes:12 };
+  const defaults = { sys:0, city:1, dept:2, proj:3, name:4, desc:5, month:6, stage:7, status:8, date:9, est:10, labor:11, link:12, person:13, notes:14 };
   for (const k of Object.keys(defaults)) { if (!(k in map)) map[k] = defaults[k]; }
   return map;
 }
@@ -483,10 +484,11 @@ function parseAndRender(text, sep) {
   allRows = dataRows.filter(r => {
     const name   = (r[C.name]   || '').trim();
     const status = (r[C.status] || '').toLowerCase().trim();
+    const stage  = (r[C.stage]  || '').toLowerCase().trim();
     if (!name) return false;
-    // Строка валидна если есть название и либо статус, либо любое непустое содержимое
     const validStatus = VALID_STATUSES.some(k => status.includes(k));
-    return validStatus || (name.length > 2 && status.length > 0);
+    const validStage  = stage.includes('разработ') || stage.includes('тестирован') || stage.includes('анализ') || stage.includes('оценка') || stage.includes('принята');
+    return validStatus || validStage;
   });
 
   if (allRows.length === 0) { showStatus('error','Нет данных после заголовка'); return; }
@@ -662,7 +664,7 @@ function renderTable(){
   const start=(page-1)*PAGE;
   const pageRows=filtered.slice(start,start+PAGE);
   if(filtered.length===0){
-    tbody.innerHTML=`<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--text3)">Нет задач по выбранным фильтрам</td></tr>`;
+    tbody.innerHTML=`<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--text3)">Нет задач по выбранным фильтрам</td></tr>`;
     renderPagination();return;
   }
   tbody.innerHTML=pageRows.map((r,i)=>`
@@ -673,6 +675,7 @@ function renderTable(){
       <td class="c-name">${x(r[C.name])}</td>
       <td class="c-desc" title="${x(r[C.desc])}">${x(r[C.desc])}</td>
       <td class="c-month">${x(r[C.month])}</td>
+      <td><span class="stage-b">${x(r[C.stage])}</span></td>
       <td>${badge(r[C.status]||'')}</td>
       <td class="c-date">${x(r[C.date])}</td>
       <td class="c-link">${lnk(r[C.link]||'')}</td>
