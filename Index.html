@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Трекер задач 1С</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d0f14; --surface: #141720; --surface2: #1a1f2e;
+  --border: #252a38; --accent: #4f8ef7; --accent2: #22d3a5;
+  --text: #e2e8f0; --text2: #8892a4; --text3: #4a5568;
+  --danger: #f56565; --success: #48bb78;
+  --mono: 'JetBrains Mono', monospace; --sans: 'Manrope', sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:40px 40px;opacity:.25;pointer-events:none;z-index:0;}
+.app{position:relative;z-index:1;}
+
+/* HEADER */
+header{border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;gap:14px;background:rgba(13,15,20,.95);backdrop-filter:blur(10px);position:sticky;top:0;z-index:100;}
+.logo{font-family:var(--mono);font-size:12px;color:var(--accent);font-weight:700;letter-spacing:2px;border:1px solid var(--accent);padding:4px 10px;border-radius:4px;}
+header h1{font-size:14px;font-weight:600;flex:1;}
+.hstats{display:flex;gap:14px;font-family:var(--mono);font-size:11px;color:var(--text2);}
+.hstat{display:flex;align-items:center;gap:5px;}
+.hdot{width:6px;height:6px;border-radius:50%;}
+
+/* CONNECT */
+.connect{padding:24px 24px 0;}
+.tabs{display:flex;gap:2px;margin-bottom:0;}
+.tab{padding:9px 18px;border:1px solid var(--border);border-bottom:none;border-radius:8px 8px 0 0;background:var(--surface2);color:var(--text2);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;}
+.tab:hover{color:var(--text);}
+.tab.active{background:var(--surface);color:var(--text);border-color:var(--border);}
+.panel-wrap{background:var(--surface);border:1px solid var(--border);border-radius:0 8px 8px 8px;padding:20px;}
+.panel{display:none;}
+.panel.active{display:block;}
+.tab-hint{font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6;}
+.tab-hint strong{color:var(--text);}
+.tab-hint code{font-family:var(--mono);background:var(--surface2);padding:2px 6px;border-radius:3px;font-size:11px;color:var(--accent);}
+
+/* PASTE */
+.paste-area{width:100%;min-height:100px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;color:var(--text);font-family:var(--mono);font-size:12px;resize:vertical;outline:none;transition:border-color .2s;line-height:1.5;}
+.paste-area:focus{border-color:var(--accent);}
+.paste-area::placeholder{color:var(--text3);}
+
+/* URL INPUT */
+.url-row{display:flex;gap:8px;flex-wrap:wrap;}
+.url-input{flex:1;min-width:260px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;transition:border-color .2s;}
+.url-input:focus{border-color:var(--accent);}
+.url-input::placeholder{color:var(--text3);}
+
+/* FILE DROP */
+.file-drop{border:2px dashed var(--border);border-radius:10px;padding:32px;text-align:center;cursor:pointer;transition:all .2s;position:relative;}
+.file-drop:hover,.file-drop.drag{border-color:var(--accent);background:rgba(79,142,247,.05);}
+.file-drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.file-drop .drop-icon{font-size:28px;margin-bottom:8px;}
+.file-drop .drop-text{font-size:13px;color:var(--text2);}
+.file-drop .drop-sub{font-size:11px;color:var(--text3);margin-top:4px;}
+
+/* BUTTONS */
+.btn{padding:9px 18px;border-radius:8px;border:none;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover{background:#3b7de0;transform:translateY(-1px);}
+.btn-primary:active{transform:translateY(0);}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border);}
+.btn-ghost:hover{border-color:var(--text2);color:var(--text);}
+.btn-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center;}
+
+/* STATUS */
+.status-bar{margin:12px 24px 0;padding:10px 16px;border-radius:8px;font-size:12px;font-family:var(--mono);display:none;align-items:center;gap:8px;}
+.status-bar.loading{display:flex;background:rgba(79,142,247,.1);border:1px solid rgba(79,142,247,.3);color:var(--accent);}
+.status-bar.error{display:flex;background:rgba(245,101,101,.1);border:1px solid rgba(245,101,101,.3);color:var(--danger);}
+.status-bar.success{display:flex;background:rgba(72,187,120,.1);border:1px solid rgba(72,187,120,.3);color:var(--success);}
+.spinner{width:13px;height:13px;border:2px solid transparent;border-top-color:currentColor;border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* SUMMARY */
+.summary{padding:16px 24px 8px;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
+.sc{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;}
+.sc-lbl{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);margin-bottom:4px;}
+.sc-val{font-family:var(--mono);font-size:20px;font-weight:700;}
+.sc-sub{font-size:10px;color:var(--text3);margin-top:2px;}
+
+/* CONTROLS */
+.controls{padding:12px 24px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.search-wrap{position:relative;flex:1;min-width:180px;max-width:300px;}
+.search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:12px;pointer-events:none;}
+.search-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px 8px 32px;color:var(--text);font-family:var(--sans);font-size:13px;outline:none;transition:border-color .2s;}
+.search-input:focus{border-color:var(--accent);}
+.search-input::placeholder{color:var(--text3);}
+.fsel{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-family:var(--sans);font-size:13px;outline:none;cursor:pointer;}
+.fsel:focus{border-color:var(--accent);}
+.ctrl-right{display:flex;gap:8px;margin-left:auto;align-items:center;}
+.cnt{font-family:var(--mono);font-size:11px;color:var(--text2);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 10px;}
+
+/* TABLE */
+.table-wrap{padding:0 24px 40px;}
+.table-scroll{overflow:auto;max-height:calc(100vh - 280px);border:1px solid var(--border);border-radius:8px;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead{position:sticky;top:0;z-index:10;}
+th{background:var(--surface2);border-bottom:1px solid var(--border);border-right:1px solid var(--border);padding:9px 11px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);cursor:pointer;user-select:none;white-space:nowrap;transition:color .15s;}
+th:hover{color:var(--text);}
+th:last-child{border-right:none;}
+th.sorted{color:var(--accent);}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s;animation:rowIn .25s ease both;}
+@keyframes rowIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+tbody tr:hover{background:var(--surface);}
+td{padding:9px 11px;vertical-align:top;border-right:1px solid rgba(37,42,56,.5);}
+td:last-child{border-right:none;}
+.c-sys{font-family:var(--mono);font-size:11px;color:var(--text2);white-space:nowrap;}
+.c-city{font-size:12px;color:var(--text2);white-space:nowrap;}
+.c-dept{font-size:11px;color:var(--text3);max-width:110px;}
+.c-name{font-weight:500;max-width:200px;line-height:1.4;}
+.c-desc{font-size:11px;color:var(--text2);max-width:240px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.c-month{font-family:var(--mono);font-size:11px;color:var(--text2);white-space:nowrap;}
+.c-date{font-family:var(--mono);font-size:11px;color:var(--text2);white-space:nowrap;}
+.c-person{font-size:12px;font-weight:500;white-space:nowrap;}
+.c-notes{font-size:11px;color:var(--text3);max-width:160px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.4;}
+.c-link a{color:var(--accent);text-decoration:none;font-family:var(--mono);font-size:11px;padding:2px 6px;border:1px solid rgba(79,142,247,.3);border-radius:4px;transition:all .15s;}
+.c-link a:hover{background:rgba(79,142,247,.1);}
+.stage-b{display:inline-flex;padding:2px 7px;border-radius:4px;font-family:var(--mono);font-size:10px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);white-space:nowrap;}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:5px;font-size:10px;font-weight:600;border:1px solid transparent;white-space:nowrap;}
+.bdot{width:5px;height:5px;border-radius:50%;}
+.s0{background:rgba(74,85,104,.2);border-color:rgba(74,85,104,.4);color:#718096;}
+.s1{background:rgba(79,142,247,.12);border-color:rgba(79,142,247,.3);color:#63a6ff;}
+.s2{background:rgba(236,201,75,.12);border-color:rgba(236,201,75,.3);color:#f6e05e;}
+.s3{background:rgba(72,187,120,.12);border-color:rgba(72,187,120,.3);color:#68d391;}
+.s4{background:rgba(247,146,79,.12);border-color:rgba(247,146,79,.3);color:#f6ad55;}
+.s5{background:rgba(159,122,234,.12);border-color:rgba(159,122,234,.3);color:#b794f4;}
+.s6{background:rgba(245,101,101,.12);border-color:rgba(245,101,101,.3);color:#fc8181;}
+.s7{background:rgba(34,211,165,.12);border-color:rgba(34,211,165,.3);color:#4fd1c5;}
+
+/* EMPTY */
+.empty{text-align:center;padding:70px 24px;color:var(--text3);}
+.empty .eico{font-size:36px;margin-bottom:14px;}
+.empty h3{font-size:15px;color:var(--text2);margin-bottom:8px;}
+.empty p{font-size:13px;line-height:1.6;}
+
+/* PAGINATION */
+.pagination{padding:14px 24px;display:flex;align-items:center;gap:6px;justify-content:center;border-top:1px solid var(--border);}
+.pb{width:30px;height:30px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-family:var(--mono);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.pb:hover{border-color:var(--accent);color:var(--accent);}
+.pb.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+.pb:disabled{opacity:.3;cursor:not-allowed;}
+.pinfo{font-family:var(--mono);font-size:11px;color:var(--text2);margin-left:8px;}
+</style>
+</head>
+<body>
+<div class="app">
+
+<header>
+  <div class="logo">TASKS</div>
+  <h1>Трекер задач / 1С</h1>
+  <div class="hstats" id="hstats"></div>
+</header>
+
+<div class="connect">
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('paste')">📋 Вставить из таблицы</button>
+    <button class="tab" onclick="switchTab('file')">📁 CSV файл</button>
+    <button class="tab" onclick="switchTab('url')">🔗 По URL (онлайн)</button>
+  </div>
+  <div class="panel-wrap">
+
+    <!-- PASTE TAB -->
+    <div class="panel active" id="tab-paste">
+      <div class="tab-hint">
+        Откройте Google Sheets → нажмите <strong>Ctrl+A</strong> (выделить всё) → <strong>Ctrl+C</strong> (скопировать) → кликните в поле ниже и нажмите <strong>Ctrl+V</strong>
+      </div>
+      <textarea class="paste-area" id="pasteArea" placeholder="Вставьте скопированные данные из Google Sheets сюда (Ctrl+V)..."></textarea>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="loadPaste()">▶ Загрузить</button>
+        <button class="btn btn-ghost" onclick="loadDemo()">Демо-данные</button>
+      </div>
+    </div>
+
+    <!-- FILE TAB -->
+    <div class="panel" id="tab-file">
+      <div class="tab-hint">
+        В Google Sheets: <strong>Файл → Скачать → CSV (.csv)</strong> — затем выберите скачанный файл:
+      </div>
+      <div class="file-drop" id="fileDrop" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropFile(event)">
+        <input type="file" accept=".csv,.tsv,.txt" onchange="loadFile(this)">
+        <div class="drop-icon">📂</div>
+        <div class="drop-text">Нажмите или перетащите CSV-файл</div>
+        <div class="drop-sub">Поддерживаются .csv, .tsv, .txt</div>
+      </div>
+      <div class="btn-row">
+        <span id="fileLabel" style="font-size:12px;color:var(--text2)"></span>
+        <button class="btn btn-ghost" onclick="loadDemo()">Демо-данные</button>
+      </div>
+    </div>
+
+    <!-- URL TAB -->
+    <div class="panel" id="tab-url">
+      <div class="tab-hint">
+        ⚠️ Работает <strong>только если страница открыта с веб-сервера</strong>, не как локальный файл (<code>file://</code>).<br>
+        Нужна ссылка из <strong>Файл → Поделиться → Опубликовать в интернете → CSV</strong> вида <code>…/pub?output=csv</code>
+      </div>
+      <div class="url-row">
+        <input class="url-input" id="urlInput" placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv" onkeydown="if(event.key==='Enter')loadUrl()">
+        <button class="btn btn-primary" id="urlBtn" onclick="loadUrl()">⟳ Загрузить</button>
+        <button class="btn btn-ghost" onclick="loadDemo()">Демо</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="status-bar" id="statusBar">
+  <div class="spinner" id="statusSpinner"></div>
+  <span id="statusText"></span>
+</div>
+
+<div class="summary" id="summary" style="display:none"></div>
+
+<div class="controls" id="controls" style="display:none">
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input class="search-input" id="searchInput" placeholder="Поиск..." oninput="applyFilters()">
+  </div>
+  <select class="fsel" id="fSystem" onchange="applyFilters()"><option value="">Все системы</option></select>
+  <select class="fsel" id="fCity" onchange="applyFilters()"><option value="">Все города</option></select>
+  <select class="fsel" id="fStatus" onchange="applyFilters()"><option value="">Все статусы</option></select>
+  <select class="fsel" id="fPerson" onchange="applyFilters()"><option value="">Все ответственные</option></select>
+  <div class="ctrl-right">
+    <span class="cnt" id="cntBadge">0 задач</span>
+    <button class="btn btn-ghost" onclick="resetFilters()">✕ Сброс</button>
+  </div>
+</div>
+
+<div class="table-wrap">
+  <div class="empty" id="emptyState">
+    <div class="eico">📊</div>
+    <h3>Данные не загружены</h3>
+    <p>Выберите способ загрузки выше.<br>Самый простой — вкладка «Вставить из таблицы»:<br>откройте Google Sheets, <strong>Ctrl+A → Ctrl+C</strong>, затем вставьте сюда.</p>
+  </div>
+  <div class="table-scroll" id="tableScroll" style="display:none"><table id="mainTable">
+    <thead><tr>
+      <th onclick="sortBy(0)">Система<span id="si0"> ↕</span></th>
+      <th onclick="sortBy(1)">Город<span id="si1"> ↕</span></th>
+      <th onclick="sortBy(2)">Подразделение<span id="si2"> ↕</span></th>
+      <th onclick="sortBy(3)">Название задачи<span id="si3"> ↕</span></th>
+      <th onclick="sortBy(4)">Описание<span id="si4"> ↕</span></th>
+      <th onclick="sortBy(5)">Месяц<span id="si5"> ↕</span></th>
+      <th onclick="sortBy(6)">Этап<span id="si6"> ↕</span></th>
+      <th onclick="sortBy(7)">Статус<span id="si7"> ↕</span></th>
+      <th onclick="sortBy(8)">Дата закрытия<span id="si8"> ↕</span></th>
+      <th>Ссылка</th>
+      <th onclick="sortBy(10)">Ответственный<span id="si10"> ↕</span></th>
+      <th>Заметки</th>
+    </tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+</div>
+<div class="pagination" id="pg" style="display:none"></div>
+
+<script>
+// ── COLUMN MAP ──────────────────────────────────────────────
+const C = { sys:0, city:1, dept:2, proj:3, name:4, desc:5, month:6, stage:7, status:8, date:9, est:10, labor:11, link:12, person:13, notes:14 };
+const PAGE = 50;
+let allRows=[], filtered=[], sortCol=-1, sortDir=1, page=1;
+
+// ── TAB SWITCH ───────────────────────────────────────────────
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['paste','file','url'][i]===id));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+}
+
+// ── LOAD: PASTE ──────────────────────────────────────────────
+function loadPaste() {
+  const raw = document.getElementById('pasteArea').value.trim();
+  if (!raw) { showStatus('error','Вставьте данные из таблицы (Ctrl+A в Google Sheets, затем Ctrl+C, затем Ctrl+V здесь)'); return; }
+  // Tab-separated (copied from Sheets) or CSV
+  const isTsv = raw.includes('\t');
+  parseAndRender(raw, isTsv ? '\t' : ',');
+}
+
+// ── LOAD: FILE ───────────────────────────────────────────────
+function loadFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  document.getElementById('fileLabel').textContent = '📄 ' + file.name;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const text = e.target.result;
+    const isTsv = file.name.endsWith('.tsv') || text.includes('\t');
+    parseAndRender(text, isTsv ? '\t' : ',');
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function dragOver(e) { e.preventDefault(); document.getElementById('fileDrop').classList.add('drag'); }
+function dragLeave() { document.getElementById('fileDrop').classList.remove('drag'); }
+function dropFile(e) {
+  e.preventDefault();
+  document.getElementById('fileDrop').classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  document.getElementById('fileLabel').textContent = '📄 ' + file.name;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const text = ev.target.result;
+    const isTsv = file.name.endsWith('.tsv') || text.split('\n')[0].includes('\t');
+    parseAndRender(text, isTsv ? '\t' : ',');
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+// ── LOAD: URL ────────────────────────────────────────────────
+async function loadUrl() {
+  const url = document.getElementById('urlInput').value.trim();
+  if (!url) { showStatus('error','Введите URL'); return; }
+  let csvUrl = url;
+  if (!url.includes('output=csv') && !url.includes('format=csv')) {
+    const m = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+    const gid = (url.match(/[#&?]gid=(\d+)/)||[,'0'])[1];
+    if (m) csvUrl = `https://docs.google.com/spreadsheets/d/${m[1]}/pub?gid=${gid}&single=true&output=csv`;
+    else { showStatus('error','Не удалось распознать ссылку. Используйте pub?output=csv URL.'); return; }
+  }
+  document.getElementById('urlBtn').disabled = true;
+  showStatus('loading','Загрузка...');
+  try {
+    const res = await fetch(csvUrl);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    parseAndRender(text, ',');
+    showStatus('success','Данные загружены');
+    setTimeout(hideStatus, 3000);
+  } catch(e) {
+    showStatus('error','⛔ Ошибка загрузки. Если файл открыт локально — браузер блокирует запросы. Используйте вкладку «Вставить из таблицы» или «CSV файл».');
+  } finally {
+    document.getElementById('urlBtn').disabled = false;
+  }
+}
+
+// ── DEMO ─────────────────────────────────────────────────────
+function loadDemo() {
+  const rows = getDemoRows();
+  allRows = rows;
+  filtered = [...allRows];
+  populateFilters();
+  applyFilters();
+  showUI();
+  showStatus('success','Демо-данные загружены (' + rows.length + ' задач)');
+  setTimeout(hideStatus, 3000);
+}
+
+// ── PARSE ─────────────────────────────────────────────────────
+function parseAndRender(text, sep) {
+  sep = sep || detectSep(text);
+  const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n').filter(l=>l.trim());
+  if (lines.length < 2) { showStatus('error','Данные не распознаны — пустой файл или неверный формат'); return; }
+  const rows = lines.map(l => sep==='\t' ? l.split('\t').map(c=>c.trim()) : parseCsvLine(l));
+  // Detect header: skip if first row looks like a header
+  const first = rows[0].join('').toLowerCase();
+  const isHeader = first.includes('система') || first.includes('город') || first.includes('название') || first.includes('статус');
+  allRows = (isHeader ? rows.slice(1) : rows).filter(r=>r.some(c=>c.trim()));
+  if (allRows.length === 0) { showStatus('error','Нет данных после заголовка'); return; }
+  filtered = [...allRows];
+  populateFilters();
+  applyFilters();
+  showUI();
+  showStatus('success','Загружено ' + allRows.length + ' задач');
+  setTimeout(hideStatus, 3000);
+}
+
+function detectSep(text) {
+  const line1 = text.split('\n')[0];
+  const tabs = (line1.match(/\t/g)||[]).length;
+  const commas = (line1.match(/,/g)||[]).length;
+  return tabs > commas ? '\t' : ',';
+}
+
+function parseCsvLine(line) {
+  const res=[]; let cur='', inQ=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(c==='"'){if(inQ&&line[i+1]==='"'){cur+='"';i++;}else inQ=!inQ;}
+    else if(c===','&&!inQ){res.push(cur.trim());cur='';}
+    else cur+=c;
+  }
+  res.push(cur.trim());
+  return res;
+}
+
+function showUI() {
+  document.getElementById('controls').style.display='flex';
+  document.getElementById('summary').style.display='grid';
+  document.getElementById('emptyState').style.display='none';
+  document.getElementById('tableScroll').style.display='';
+  document.getElementById('mainTable').style.display='';
+  renderSummary();
+  updateHStats();
+}
+
+// ── STATUS ─────────────────────────────────────────────────────
+function showStatus(type,msg){
+  const b=document.getElementById('statusBar');
+  b.className='status-bar '+type;
+  document.getElementById('statusSpinner').style.display=type==='loading'?'block':'none';
+  document.getElementById('statusText').textContent=msg;
+}
+function hideStatus(){document.getElementById('statusBar').className='status-bar';}
+
+// ── FILTERS ──────────────────────────────────────────────────
+function populateFilters(){
+  const s=new Set(),c=new Set(),st=new Set(),p=new Set();
+  allRows.forEach(r=>{
+    if(r[C.sys])s.add(r[C.sys]);
+    if(r[C.city])c.add(r[C.city]);
+    if(r[C.status])st.add(r[C.status]);
+    if(r[C.person])p.add(r[C.person]);
+  });
+  fill('fSystem',s); fill('fCity',c); fill('fStatus',st); fill('fPerson',p);
+}
+function fill(id,vals){
+  const sel=document.getElementById(id),cur=sel.value;
+  while(sel.options.length>1)sel.remove(1);
+  [...vals].sort().forEach(v=>{const o=document.createElement('option');o.value=o.textContent=v;sel.appendChild(o);});
+  sel.value=cur;
+}
+function applyFilters(){
+  const q=document.getElementById('searchInput').value.toLowerCase();
+  const sys=document.getElementById('fSystem').value;
+  const city=document.getElementById('fCity').value;
+  const stat=document.getElementById('fStatus').value;
+  const per=document.getElementById('fPerson').value;
+  filtered=allRows.filter(r=>{
+    if(sys&&r[C.sys]!==sys)return false;
+    if(city&&r[C.city]!==city)return false;
+    if(stat&&r[C.status]!==stat)return false;
+    if(per&&r[C.person]!==per)return false;
+    if(q&&!r.join(' ').toLowerCase().includes(q))return false;
+    return true;
+  });
+  page=1;
+  renderTable();
+  renderSummary();
+  document.getElementById('cntBadge').textContent=filtered.length+' задач';
+}
+function resetFilters(){
+  ['searchInput','fSystem','fCity','fStatus','fPerson'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el.tagName==='INPUT')el.value='';else el.value='';
+  });
+  applyFilters();
+}
+
+// ── SORT ──────────────────────────────────────────────────────
+function sortBy(col){
+  if(sortCol===col)sortDir*=-1;else{sortCol=col;sortDir=1;}
+  document.querySelectorAll('[id^="si"]').forEach(el=>{
+    const i=parseInt(el.id.slice(2));
+    el.textContent=i===col?(sortDir===1?' ↑':' ↓'):' ↕';
+    el.parentElement.classList.toggle('sorted',i===col);
+  });
+  filtered.sort((a,b)=>(a[col]||'').localeCompare(b[col]||'','ru')*sortDir);
+  page=1;renderTable();
+}
+
+// ── RENDER TABLE ──────────────────────────────────────────────
+function renderTable(){
+  const tbody=document.getElementById('tbody');
+  const start=(page-1)*PAGE;
+  const pageRows=filtered.slice(start,start+PAGE);
+  if(filtered.length===0){
+    tbody.innerHTML=`<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--text3)">Нет задач по выбранным фильтрам</td></tr>`;
+    renderPagination();return;
+  }
+  tbody.innerHTML=pageRows.map((r,i)=>`
+    <tr style="animation-delay:${i*.015}s">
+      <td class="c-sys">${x(r[C.sys])}</td>
+      <td class="c-city">${x(r[C.city])}</td>
+      <td class="c-dept">${x(r[C.dept])}</td>
+      <td class="c-name">${x(r[C.name])}</td>
+      <td class="c-desc" title="${x(r[C.desc])}">${x(r[C.desc])}</td>
+      <td class="c-month">${x(r[C.month])}</td>
+      <td><span class="stage-b">${x(r[C.stage])}</span></td>
+      <td>${badge(r[C.status]||'')}</td>
+      <td class="c-date">${x(r[C.date])}</td>
+      <td class="c-link">${lnk(r[C.link]||'')}</td>
+      <td class="c-person">${x(r[C.person])}</td>
+      <td class="c-notes" title="${x(r[C.notes])}">${x(r[C.notes])}</td>
+    </tr>`).join('');
+  renderPagination();
+}
+
+function x(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function lnk(v){
+  v=v.trim();if(!v)return '';
+  if(v.startsWith('http')){const m=v.match(/\/(\d+)\/?$/);const lbl=m?'#'+m[1]:v.split('/').pop()||'link';return `<a href="${v}" target="_blank">${lbl}</a>`;}
+  if(/^\d+$/.test(v))return `<a href="https://akv.task-tm.com:30201/tm/ticket/show/${v}" target="_blank">#${v}</a>`;
+  return x(v);
+}
+
+function badge(s){
+  const l=s.toLowerCase();
+  let cls='s0',dot='#718096';
+  if(l.includes('в работе')){cls='s1';dot='#63a6ff';}
+  else if(l.includes('готова к приемке')){cls='s2';dot='#f6e05e';}
+  else if(l.includes('принята')){cls='s3';dot='#68d391';}
+  else if(l.includes('паузе')){cls='s4';dot='#f6ad55';}
+  else if(l.includes('уточнени')){cls='s5';dot='#b794f4';}
+  else if(l.includes('отмена')||l.includes('не актуальна')){cls='s6';dot='#fc8181';}
+  else if(l.includes('тестирование')){cls='s7';dot='#4fd1c5';}
+  return `<span class="badge ${cls}"><span class="bdot" style="background:${dot}"></span>${x(s)}</span>`;
+}
+
+// ── PAGINATION ────────────────────────────────────────────────
+function renderPagination(){
+  const total=filtered.length,pages=Math.ceil(total/PAGE),pg=document.getElementById('pg');
+  if(pages<=1){pg.style.display='none';return;}
+  pg.style.display='flex';
+  let h=`<button class="pb" onclick="goPage(${page-1})" ${page===1?'disabled':''}>‹</button>`;
+  for(let i=1;i<=pages;i++){
+    if(pages>8&&i>2&&i<pages-1&&Math.abs(i-page)>2){if(i===3||i===pages-2)h+=`<span class="pinfo">…</span>`;continue;}
+    h+=`<button class="pb ${i===page?'active':''}" onclick="goPage(${i})">${i}</button>`;
+  }
+  h+=`<button class="pb" onclick="goPage(${page+1})" ${page===pages?'disabled':''}>›</button>`;
+  h+=`<span class="pinfo">${(page-1)*PAGE+1}–${Math.min(page*PAGE,total)} из ${total}</span>`;
+  pg.innerHTML=h;
+}
+function goPage(p){const pages=Math.ceil(filtered.length/PAGE);if(p<1||p>pages)return;page=p;renderTable();window.scrollTo({top:200,behavior:'smooth'});}
+
+// ── SUMMARY ───────────────────────────────────────────────────
+function renderSummary(){
+  const t=filtered.length;
+  const done=filtered.filter(r=>(r[C.status]||'').toLowerCase().includes('принята')).length;
+  const work=filtered.filter(r=>(r[C.status]||'').toLowerCase().includes('в работе')).length;
+  const ready=filtered.filter(r=>(r[C.status]||'').toLowerCase().includes('готова к приемке')).length;
+  const pause=filtered.filter(r=>(r[C.status]||'').toLowerCase().includes('паузе')).length;
+  const cancel=filtered.filter(r=>{const s=(r[C.status]||'').toLowerCase();return s.includes('отмена')||s.includes('не актуальна');}).length;
+  const persons=new Set(filtered.map(r=>r[C.person]).filter(Boolean));
+  document.getElementById('summary').innerHTML=`
+    <div class="sc"><div class="sc-lbl">Всего</div><div class="sc-val">${t}</div><div class="sc-sub">${persons.size} исполнителей</div></div>
+    <div class="sc"><div class="sc-lbl" style="color:#68d391">✓ Принята</div><div class="sc-val" style="color:#68d391">${done}</div><div class="sc-sub">${t?Math.round(done/t*100):0}%</div></div>
+    <div class="sc"><div class="sc-lbl" style="color:#63a6ff">▶ В работе</div><div class="sc-val" style="color:#63a6ff">${work}</div><div class="sc-sub">активных</div></div>
+    <div class="sc"><div class="sc-lbl" style="color:#f6e05e">◉ К приемке</div><div class="sc-val" style="color:#f6e05e">${ready}</div><div class="sc-sub">ожидают</div></div>
+    <div class="sc"><div class="sc-lbl" style="color:#f6ad55">‖ На паузе</div><div class="sc-val" style="color:#f6ad55">${pause}</div><div class="sc-sub">приостановлено</div></div>
+    <div class="sc"><div class="sc-lbl" style="color:#fc8181">✕ Отменено</div><div class="sc-val" style="color:#fc8181">${cancel}</div><div class="sc-sub">не актуально</div></div>`;
+  updateHStats();
+}
+function updateHStats(){
+  if(!allRows.length)return;
+  const done=allRows.filter(r=>(r[C.status]||'').toLowerCase().includes('принята')).length;
+  const work=allRows.filter(r=>(r[C.status]||'').toLowerCase().includes('в работе')).length;
+  document.getElementById('hstats').innerHTML=`
+    <div class="hstat"><div class="hdot" style="background:#68d391"></div>${done} принято</div>
+    <div class="hstat"><div class="hdot" style="background:#63a6ff"></div>${work} в работе</div>
+    <div class="hstat"><div class="hdot" style="background:#8892a4"></div>${allRows.length} всего</div>`;
+}
+
+// ── DEMO DATA ─────────────────────────────────────────────────
+function getDemoRows(){return [
+["1С ERP","Все города","ИТ","","Приоритет согласования ЗРДС ЕРП-ДО","","Ноябрь 25","3 - Разработка","1 - новая","","","34774","https://akv.task-tm.com:30201/tm/ticket/show/34774","Выстрелков",""],
+["1С ERP","Все города","Кадровая служба","ЗУП/УСО","Синхронизация ЗУП -> ERP.","","Октябрь 25","3 - Разработка","2 - в работе","","","27904","https://akv.task-tm.com:30201/tm/ticket/show/27904","Выстрелков",""],
+["1С ERP","Все города","ИТ","","Трехсторонний договор ERP/ДО обмены","Перенос 2ой организации из ДО в ЕРП","Октябрь 25","3 - Разработка","2 - в работе","","","34253","https://akv.task-tm.com:30201/tm/ticket/show/34253","Выстрелков",""],
+["1С ДО","Все города","ИТ","","Уведомления при смене КПП","Уведомлять ответственного по КА о смене КПП","Октябрь 25","3 - Разработка","2 - в работе","","","33937","https://akv.task-tm.com:30201/tm/ticket/show/33937","Выстрелков",""],
+["1С ERP","Все города","ИТ","","Хранилище для файлов в документах ЕРП","","Февраль 26","3 - Разработка","4 - принята","27.02.2026","","36433","https://akv.task-tm.com:30201/tm/ticket/show/36433","Выстрелков",""],
+];}
+</script>
+</div>
+</body>
+</html>
