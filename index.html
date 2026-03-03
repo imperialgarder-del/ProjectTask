@@ -13,6 +13,69 @@
   --danger: #f56565; --success: #48bb78;
   --mono: 'JetBrains Mono', monospace; --sans: 'Manrope', sans-serif;
 }
+/* ---- LIGHT THEME ---- */
+body.light {
+  --bg: #f4f6fb; --surface: #ffffff; --surface2: #edf0f7;
+  --border: #d4d9e8; --accent: #2563eb; --accent2: #0ea57a;
+  --text: #1a2033; --text2: #5a6480; --text3: #9aa0b4;
+  --danger: #dc2626; --success: #16a34a;
+}
+body.light::before { opacity: .12; }
+body.light header { background: rgba(244,246,251,.97); }
+body.light .logo { border-color: var(--accent); color: var(--accent); }
+body.light .tab { background: #edf0f7; }
+body.light .tab.active { background: #fff; }
+body.light .paste-area { background: #f8faff; }
+body.light .url-input { background: #f8faff; }
+body.light .search-input { background: #f8faff; }
+body.light .fsel { background: #f8faff; }
+body.light .file-drop { background: #f8faff; }
+body.light .table-scroll { border-color: var(--border); }
+body.light th { background: #e8ecf5; color: #4a5270; }
+body.light tbody tr:hover { background: #f0f3fb; }
+body.light .stage-b { background: #edf0f7; color: #5a6480; border-color: #d4d9e8; }
+body.light .c-sys, body.light .c-city, body.light .c-month, body.light .c-date { color: #5a6480; }
+body.light .c-desc, body.light .c-dept, body.light .c-notes { color: #7a82a0; }
+body.light .s0 { background: rgba(90,100,128,.1); border-color: rgba(90,100,128,.3); color: #5a6480; }
+body.light .s1 { background: rgba(37,99,235,.1); border-color: rgba(37,99,235,.3); color: #2563eb; }
+body.light .s2 { background: rgba(180,130,0,.1); border-color: rgba(180,130,0,.3); color: #92650a; }
+body.light .s3 { background: rgba(22,163,74,.1); border-color: rgba(22,163,74,.3); color: #16a34a; }
+body.light .s4 { background: rgba(220,100,0,.1); border-color: rgba(220,100,0,.3); color: #c45a00; }
+body.light .s5 { background: rgba(124,58,237,.1); border-color: rgba(124,58,237,.3); color: #7c3aed; }
+body.light .s6 { background: rgba(220,38,38,.1); border-color: rgba(220,38,38,.3); color: #dc2626; }
+body.light .s7 { background: rgba(14,165,122,.1); border-color: rgba(14,165,122,.3); color: #0ea57a; }
+body.light .pb { background: #fff; border-color: var(--border); color: var(--text2); }
+body.light .pb.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+body.light .sc { background: #fff; }
+body.light .status-bar.loading { background: rgba(37,99,235,.07); }
+body.light .status-bar.success { background: rgba(22,163,74,.07); }
+body.light .status-bar.error { background: rgba(220,38,38,.07); }
+
+/* theme toggle button */
+.theme-toggle {
+  width: 36px; height: 20px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  position: relative;
+  transition: background .2s, border-color .2s;
+  flex-shrink: 0;
+}
+.theme-toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--text2);
+  transition: transform .2s, background .2s;
+}
+body.light .theme-toggle { background: #c7d7ff; border-color: #93b4ff; }
+body.light .theme-toggle::after { background: var(--accent); transform: translateX(16px); }
+.theme-label { font-size: 11px; color: var(--text2); white-space: nowrap; }
+
+
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;}
 body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:40px 40px;opacity:.25;pointer-events:none;z-index:0;}
@@ -154,6 +217,8 @@ td:last-child{border-right:none;}
   <div class="logo">TASKS</div>
   <h1>Трекер задач / 1С</h1>
   <div class="hstats" id="hstats"></div>
+  <span class="theme-label" id="themeLabel">🌙</span>
+  <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Сменить тему"></button>
 </header>
 
 <div class="connect">
@@ -172,7 +237,6 @@ td:last-child{border-right:none;}
       <textarea class="paste-area" id="pasteArea" placeholder="Вставьте скопированные данные из Google Sheets сюда (Ctrl+V)..."></textarea>
       <div class="btn-row">
         <button class="btn btn-primary" onclick="loadPaste()">▶ Загрузить</button>
-        <button class="btn btn-ghost" onclick="loadDemo()">Демо-данные</button>
       </div>
     </div>
 
@@ -189,7 +253,6 @@ td:last-child{border-right:none;}
       </div>
       <div class="btn-row">
         <span id="fileLabel" style="font-size:12px;color:var(--text2)"></span>
-        <button class="btn btn-ghost" onclick="loadDemo()">Демо-данные</button>
       </div>
     </div>
 
@@ -202,7 +265,6 @@ td:last-child{border-right:none;}
       <div class="url-row">
         <input class="url-input" id="urlInput" placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv" onkeydown="if(event.key==='Enter')loadUrl()">
         <button class="btn btn-primary" id="urlBtn" onclick="loadUrl()">⟳ Загрузить</button>
-        <button class="btn btn-ghost" onclick="loadDemo()">Демо</button>
       </div>
     </div>
 
@@ -245,8 +307,7 @@ td:last-child{border-right:none;}
       <th onclick="sortBy(3)">Название задачи<span id="si3"> ↕</span></th>
       <th onclick="sortBy(4)">Описание<span id="si4"> ↕</span></th>
       <th onclick="sortBy(5)">Месяц<span id="si5"> ↕</span></th>
-      <th onclick="sortBy(6)">Этап<span id="si6"> ↕</span></th>
-      <th onclick="sortBy(7)">Статус<span id="si7"> ↕</span></th>
+      <th onclick="sortBy(6)">Статус<span id="si7"> ↕</span></th>
       <th onclick="sortBy(8)">Дата закрытия<span id="si8"> ↕</span></th>
       <th>Ссылка</th>
       <th onclick="sortBy(10)">Ответственный<span id="si10"> ↕</span></th>
@@ -260,7 +321,40 @@ td:last-child{border-right:none;}
 
 <script>
 // ── COLUMN MAP ──────────────────────────────────────────────
-const C = { sys:0, city:1, dept:2, proj:3, name:4, desc:5, month:6, stage:7, status:8, date:9, est:10, labor:11, link:12, person:13, notes:14 };
+// Column indices — auto-detected from header row
+// Дефолты: Система|Город|Подразделение|Название задачи|Описание|Месяц|Статус|Дата закрытия|Оценка|Трудозатраты|Ссылка|Ответственный|Заметки
+let C = { sys:0, city:1, dept:2, proj:-1, name:3, desc:4, month:5, stage:-1, status:6, date:7, est:8, labor:9, link:10, person:11, notes:12 };
+
+const COL_KEYWORDS = {
+  sys:    ['система'],
+  city:   ['город'],
+  dept:   ['подразделение'],
+  proj:   ['проект'],
+  name:   ['название задачи','название'],
+  desc:   ['описание'],
+  month:  ['месяц'],
+  stage:  ['этап'],
+  status: ['статус'],
+  date:   ['дата закрыт','дата'],
+  est:    ['оценка'],
+  labor:  ['трудозатра'],
+  link:   ['ссылка'],
+  person: ['ответственный'],
+  notes:  ['заметки'],
+};
+
+function detectColumns(headerRow) {
+  const map = {};
+  headerRow.forEach((cell, idx) => {
+    const low = (cell||'').toLowerCase().trim();
+    for (const [key, kws] of Object.entries(COL_KEYWORDS)) {
+      if (kws.some(k => low.includes(k)) && !(key in map)) map[key] = idx;
+    }
+  });
+  const defaults = { sys:0, city:1, dept:2, proj:-1, name:3, desc:4, month:5, stage:-1, status:6, date:7, est:8, labor:9, link:10, person:11, notes:12 };
+  for (const k of Object.keys(defaults)) { if (!(k in map)) map[k] = defaults[k]; }
+  return map;
+}
 const PAGE = 50;
 let allRows=[], filtered=[], sortCol=-1, sortDir=1, page=1;
 
@@ -338,28 +432,63 @@ async function loadUrl() {
   }
 }
 
-// ── DEMO ─────────────────────────────────────────────────────
-function loadDemo() {
-  const rows = getDemoRows();
-  allRows = rows;
-  filtered = [...allRows];
-  populateFilters();
-  applyFilters();
-  showUI();
-  showStatus('success','Демо-данные загружены (' + rows.length + ' задач)');
-  setTimeout(hideStatus, 3000);
-}
 
 // ── PARSE ─────────────────────────────────────────────────────
 function parseAndRender(text, sep) {
   sep = sep || detectSep(text);
-  const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n').filter(l=>l.trim());
-  if (lines.length < 2) { showStatus('error','Данные не распознаны — пустой файл или неверный формат'); return; }
-  const rows = lines.map(l => sep==='\t' ? l.split('\t').map(c=>c.trim()) : parseCsvLine(l));
-  // Detect header: skip if first row looks like a header
-  const first = rows[0].join('').toLowerCase();
-  const isHeader = first.includes('система') || first.includes('город') || first.includes('название') || first.includes('статус');
-  allRows = (isHeader ? rows.slice(1) : rows).filter(r=>r.some(c=>c.trim()));
+  if (!text || text.trim().length < 5) { showStatus('error','Данные не распознаны — пустой файл или неверный формат'); return; }
+  // Parse full text using multiline-aware parser for both TSV and CSV
+  const rows = sep === '\t' ? parseTSV(text) : parseCSV(text, sep);
+  if (rows.length < 2) { showStatus('error','Данные не распознаны — пустой файл или неверный формат'); return; }
+  // Find header row — scan first few rows (sometimes there are blank rows at top)
+  let headerIdx = -1;
+  for (let i = 0; i < Math.min(5, rows.length); i++) {
+    const joined = rows[i].join('').toLowerCase();
+    if (joined.includes('система') || joined.includes('название') || joined.includes('статус') || joined.includes('город')) {
+      headerIdx = i;
+      break;
+    }
+  }
+  const isHeader = headerIdx >= 0;
+  if (isHeader) {
+    C = detectColumns(rows[headerIdx]);
+    console.log('Header row index:', headerIdx, 'Detected columns:', JSON.stringify(C));
+  }
+  const dataRows = (isHeader ? rows.slice(headerIdx + 1) : rows);
+
+  // Fill down merged/empty cells for key columns (Система, Город, Подразделение, Ответственный)
+  // In Google Sheets merged cells only have value in first row — rest are empty when copied
+  // Clean trailing newlines/whitespace from all cells (CSV multiline artifact)
+  for (const row of dataRows) {
+    for (let i = 0; i < row.length; i++) {
+      if (row[i]) row[i] = row[i].replace(/\n/g, ' ').trim();
+    }
+  }
+
+  // Fill down only structural columns (merged cells in Sheets) — NOT person/responsible!
+  const fillDownCols = [C.sys, C.city, C.dept];
+  const lastVals = {};
+  for (const row of dataRows) {
+    for (const col of fillDownCols) {
+      if (row[col] && row[col].trim()) {
+        lastVals[col] = row[col].trim();
+      } else if (lastVals[col]) {
+        row[col] = lastVals[col];
+      }
+    }
+  }
+
+  // Known status keywords — only rows with these are real tasks
+  const VALID_STATUSES = ['новая','в работе','приемке','принята','паузе','уточнени','отмена','актуальна','тестирование'];
+  allRows = dataRows.filter(r => {
+    const name   = (r[C.name]   || '').trim();
+    const status = (r[C.status] || '').toLowerCase().trim();
+    if (!name) return false;
+    // Строка валидна если есть название и либо статус, либо любое непустое содержимое
+    const validStatus = VALID_STATUSES.some(k => status.includes(k));
+    return validStatus || (name.length > 2 && status.length > 0);
+  });
+
   if (allRows.length === 0) { showStatus('error','Нет данных после заголовка'); return; }
   filtered = [...allRows];
   populateFilters();
@@ -369,19 +498,83 @@ function parseAndRender(text, sep) {
   setTimeout(hideStatus, 3000);
 }
 
-function detectSep(text) {
-  const line1 = text.split('\n')[0];
-  const tabs = (line1.match(/\t/g)||[]).length;
-  const commas = (line1.match(/,/g)||[]).length;
-  return tabs > commas ? '\t' : ',';
+// Proper TSV parser: handles quoted cells with embedded newlines and tabs
+// Google Sheets copies data as TSV where cells with newlines are wrapped in double-quotes
+function parseTSV(text) {
+  const rows = [];
+  let row = [];
+  let cell = '';
+  let inQ = false;
+  let i = 0;
+  // Normalize line endings
+  text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  while (i < text.length) {
+    const ch = text[i];
+    if (inQ) {
+      if (ch === '"') {
+        if (text[i+1] === '"') { cell += '"'; i += 2; continue; } // escaped quote
+        inQ = false; i++; continue;
+      }
+      cell += ch; i++; continue;
+    }
+    if (ch === '"') { inQ = true; i++; continue; }
+    if (ch === '\t') { row.push(cell.trim()); cell = ''; i++; continue; }
+    if (ch === '\n') {
+      row.push(cell.trim()); cell = '';
+      if (row.some(c => c.length > 0)) rows.push(row);
+      row = []; i++; continue;
+    }
+    cell += ch; i++;
+  }
+  if (cell.trim() || row.length) { row.push(cell.trim()); if (row.some(c=>c.length>0)) rows.push(row); }
+  return rows;
 }
 
-function parseCsvLine(line) {
+// Full RFC-4180 CSV parser — handles quoted multiline cells, escaped quotes
+function parseCSV(text, sep) {
+  sep = sep || ',';
+  const rows = [];
+  let row = [], cell = '', inQ = false, i = 0;
+  text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  while (i < text.length) {
+    const ch = text[i];
+    if (inQ) {
+      if (ch === '"') {
+        if (text[i+1] === '"') { cell += '"'; i += 2; continue; }
+        inQ = false; i++; continue;
+      }
+      cell += ch; i++; continue;
+    }
+    if (ch === '"') { inQ = true; i++; continue; }
+    if (ch === sep) { row.push(cell.trim()); cell = ''; i++; continue; }
+    if (ch === '\n') {
+      row.push(cell.trim()); cell = '';
+      if (row.some(c => c.length > 0)) rows.push(row);
+      row = []; i++; continue;
+    }
+    cell += ch; i++;
+  }
+  if (cell.trim() || row.length) { row.push(cell.trim()); if (row.some(c => c.length > 0)) rows.push(row); }
+  return rows;
+}
+
+function detectSep(text) {
+  const line1 = text.split('\n')[0];
+  const tabs       = (line1.match(/\t/g)||[]).length;
+  const commas     = (line1.match(/,/g)||[]).length;
+  const semicolons = (line1.match(/;/g)||[]).length;
+  if (tabs > commas && tabs > semicolons) return '\t';
+  if (semicolons > commas) return ';';
+  return ',';
+}
+
+function parseCsvLine(line, sep) {
+  sep = sep || ',';
   const res=[]; let cur='', inQ=false;
   for(let i=0;i<line.length;i++){
     const c=line[i];
     if(c==='"'){if(inQ&&line[i+1]==='"'){cur+='"';i++;}else inQ=!inQ;}
-    else if(c===','&&!inQ){res.push(cur.trim());cur='';}
+    else if(c===sep&&!inQ){res.push(cur.trim());cur='';}
     else cur+=c;
   }
   res.push(cur.trim());
@@ -469,7 +662,7 @@ function renderTable(){
   const start=(page-1)*PAGE;
   const pageRows=filtered.slice(start,start+PAGE);
   if(filtered.length===0){
-    tbody.innerHTML=`<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--text3)">Нет задач по выбранным фильтрам</td></tr>`;
+    tbody.innerHTML=`<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--text3)">Нет задач по выбранным фильтрам</td></tr>`;
     renderPagination();return;
   }
   tbody.innerHTML=pageRows.map((r,i)=>`
@@ -480,7 +673,6 @@ function renderTable(){
       <td class="c-name">${x(r[C.name])}</td>
       <td class="c-desc" title="${x(r[C.desc])}">${x(r[C.desc])}</td>
       <td class="c-month">${x(r[C.month])}</td>
-      <td><span class="stage-b">${x(r[C.stage])}</span></td>
       <td>${badge(r[C.status]||'')}</td>
       <td class="c-date">${x(r[C.date])}</td>
       <td class="c-link">${lnk(r[C.link]||'')}</td>
@@ -495,7 +687,7 @@ function x(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').re
 function lnk(v){
   v=v.trim();if(!v)return '';
   if(v.startsWith('http')){const m=v.match(/\/(\d+)\/?$/);const lbl=m?'#'+m[1]:v.split('/').pop()||'link';return `<a href="${v}" target="_blank">${lbl}</a>`;}
-  if(/^\d+$/.test(v))return `<a href="https://akv.task-tm.com:30201/tm/ticket/show/${v}" target="_blank">#${v}</a>`;
+  if(/^\d+$/.test(v))return x(v);
   return x(v);
 }
 
@@ -556,14 +748,25 @@ function updateHStats(){
     <div class="hstat"><div class="hdot" style="background:#8892a4"></div>${allRows.length} всего</div>`;
 }
 
-// ── DEMO DATA ─────────────────────────────────────────────────
-function getDemoRows(){return [
-["1С ERP","Все города","ИТ","","Приоритет согласования ЗРДС ЕРП-ДО","","Ноябрь 25","3 - Разработка","1 - новая","","","34774","https://akv.task-tm.com:30201/tm/ticket/show/34774","Выстрелков",""],
-["1С ERP","Все города","Кадровая служба","ЗУП/УСО","Синхронизация ЗУП -> ERP.","","Октябрь 25","3 - Разработка","2 - в работе","","","27904","https://akv.task-tm.com:30201/tm/ticket/show/27904","Выстрелков",""],
-["1С ERP","Все города","ИТ","","Трехсторонний договор ERP/ДО обмены","Перенос 2ой организации из ДО в ЕРП","Октябрь 25","3 - Разработка","2 - в работе","","","34253","https://akv.task-tm.com:30201/tm/ticket/show/34253","Выстрелков",""],
-["1С ДО","Все города","ИТ","","Уведомления при смене КПП","Уведомлять ответственного по КА о смене КПП","Октябрь 25","3 - Разработка","2 - в работе","","","33937","https://akv.task-tm.com:30201/tm/ticket/show/33937","Выстрелков",""],
-["1С ERP","Все города","ИТ","","Хранилище для файлов в документах ЕРП","","Февраль 26","3 - Разработка","4 - принята","27.02.2026","","36433","https://akv.task-tm.com:30201/tm/ticket/show/36433","Выстрелков",""],
-];}
+// ── THEME TOGGLE ─────────────────────────────────────────────────
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light');
+  document.getElementById('themeLabel').textContent = isLight ? '☀️' : '🌙';
+  try { localStorage.setItem('theme', isLight ? 'light' : 'dark'); } catch(e){}
+}
+(function(){
+  try {
+    if (localStorage.getItem('theme') === 'light') {
+      document.body.classList.add('light');
+      document.addEventListener('DOMContentLoaded', () => {
+        const lbl = document.getElementById('themeLabel');
+        if (lbl) lbl.textContent = '☀️';
+      });
+    }
+  } catch(e){}
+})();
+
+
 </script>
 </div>
 </body>
